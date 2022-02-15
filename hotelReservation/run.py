@@ -2,29 +2,29 @@ import subprocess
 import os
 import random
 import time
-from sklearn import preprocessing
+import numpy as np
 
 NUM_THREADS = str(4)
 NUM_CONNECTIONS = str(20)
 DURATIONS = str(10)
 REQUESTS_PER_SECOND = str(100)
+RUNS = 5
+SLEEP_DURATION = 30
 
 def generateRand():
     return round(random.uniform(0, 1), 3)
 
 def runBenchMark():
-    values = []
-
-    for _ in range(4):
-        values.append(generateRand())
     
     # Normalize Values
-    normalized_arr = preprocessing.normalize([values])
+    normalized_arr = np.random.rand(4,1)
+    normalized_arr = normalized_arr/normalized_arr.sum(axis=0,keepdims=1)
 
-    os.environ["SEARCH_RATIO"] = normalized_arr[0]
-    os.environ["RECOMMEND_RATIO"] = normalized_arr[1]
-    os.environ["USER_RATIO"] = normalized_arr[2]
-    os.environ["RESERVE_RATIO"] = normalized_arr[3]
+
+    os.environ["SEARCH_RATIO"] = round(normalized_arr[0][0], 3)
+    os.environ["RECOMMEND_RATIO"] = round(normalized_arr[1][0], 3)
+    os.environ["USER_RATIO"] = round(normalized_arr[2][0], 3)
+    os.environ["RESERVE_RATIO"] = round(normalized_arr[3][0], 3)
 
     subprocess.run(["./wrk2/wrk", 
                     "-D", 
@@ -50,8 +50,9 @@ def runBenchMark():
 
 
 def main():
-    for _ in range(15):
+    for _ in range(RUNS):
         runBenchMark()
+        time.sleep(SLEEP_DURATION)
 
 if __name__ == "__main__":
     main()
