@@ -21,10 +21,10 @@ def runBenchMark():
     normalized_arr = normalized_arr/normalized_arr.sum(axis=0,keepdims=1)
 
 
-    os.environ["SEARCH_RATIO"] = round(normalized_arr[0][0], 3)
-    os.environ["RECOMMEND_RATIO"] = round(normalized_arr[1][0], 3)
-    os.environ["USER_RATIO"] = round(normalized_arr[2][0], 3)
-    os.environ["RESERVE_RATIO"] = round(normalized_arr[3][0], 3)
+    os.environ["SEARCH_RATIO"] = str(round(normalized_arr[0][0], 3))
+    os.environ["RECOMMEND_RATIO"] = str(round(normalized_arr[1][0], 3))
+    os.environ["USER_RATIO"] = str(round(normalized_arr[2][0], 3))
+    os.environ["RESERVE_RATIO"] = str(round(normalized_arr[3][0], 3))
 
     subprocess.run(["./wrk2/wrk", 
                     "-D", 
