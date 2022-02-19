@@ -1,5 +1,7 @@
 .PHONY: proto data run
 
+# NEVER Run Proto
+# To run edited go code just use the run command below
 proto:
 	for f in services/**/proto/*.proto; do \
 		protoc --go_out=plugins=grpc:. $$f; \
@@ -11,4 +13,4 @@ data:
 
 run:
 	docker-compose build
-	docker-compose up --remove-orphans
+	docker-compose up --remove-orphans -d

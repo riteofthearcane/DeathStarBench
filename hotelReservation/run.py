@@ -9,7 +9,7 @@ NUM_CONNECTIONS = str(20)
 DURATIONS = str(10)
 REQUESTS_PER_SECOND = str(100)
 RUNS = 5
-SLEEP_DURATION = 30
+SLEEP_DURATION = 1
 
 def generateRand():
     return round(random.uniform(0, 1), 3)
@@ -21,11 +21,16 @@ def runBenchMark():
     normalized_arr = normalized_arr/normalized_arr.sum(axis=0,keepdims=1)
 
 
-    os.environ["SEARCH_RATIO"] = str(round(normalized_arr[0][0], 3))
-    os.environ["RECOMMEND_RATIO"] = str(round(normalized_arr[1][0], 3))
-    os.environ["USER_RATIO"] = str(round(normalized_arr[2][0], 3))
-    os.environ["RESERVE_RATIO"] = str(round(normalized_arr[3][0], 3))
+    # os.environ["SEARCH_RATIO"] = str(round(normalized_arr[0][0], 3))
+    # os.environ["RECOMMEND_RATIO"] = str(round(normalized_arr[1][0], 3))
+    # os.environ["USER_RATIO"] = str(round(normalized_arr[2][0], 3))
+    # os.environ["RESERVE_RATIO"] = str(round(normalized_arr[3][0], 3))
 
+    os.environ["SEARCH_RATIO"] = str(0)
+    os.environ["RECOMMEND_RATIO"] = str(0)
+    os.environ["USER_RATIO"] = str(0)
+    os.environ["RESERVE_RATIO"] = str(1)
+    
     subprocess.run(["./wrk2/wrk", 
                     "-D", 
                     "exp",
