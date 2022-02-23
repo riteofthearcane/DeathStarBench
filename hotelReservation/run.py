@@ -3,13 +3,13 @@ import os
 import random
 import time
 import numpy as np
-from dataclasses import dataclass
+import json
 
 NUM_THREADS = str(4)
 NUM_CONNECTIONS = str(20)
-DURATIONS = str(10)
-REQUESTS_PER_SECOND = str(100)
-RUNS = 5
+DURATIONS = str(15)
+REQUESTS_PER_SECOND = 100
+RUNS = 3
 SLEEP_DURATION = 1
 
 
@@ -47,7 +47,7 @@ def run_benchmark():
                     "./wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua",
                     "http://0.0.0.0:5000", 
                     "-R", 
-                    REQUESTS_PER_SECOND]
+                    str(REQUESTS_PER_SECOND)]
     res = subprocess.check_output(cmd).decode("utf-8")
 
     # Delete Env when finished
@@ -69,17 +69,24 @@ def parse_results(output):
     for _ in range(8):
         i += 1
         words = lines[i].split()
+        print("Words: " + words[0])
         latency_map[words[0]] = words[1]
-    return latency_map
 
-        
+    print("Val: " + latency_map["50.000%"])
+    return latency_map["50.000%"]
 
 def main():
-    results = []
+    results = {}
     for _ in range(RUNS):
-        output = run_benchmark()
-        results.append(parse_results(output))
+        global REQUESTS_PER_SECOND
+        print(REQUESTS_PER_SECOND)
+        res = run_benchmark()
+        results[REQUESTS_PER_SECOND] = parse_results(res)
         time.sleep(SLEEP_DURATION)
+        REQUESTS_PER_SECOND += 1000
+    
+    with open("data.json", "w") as f:
+        json.dump(results, f)
 
 if __name__ == "__main__":
     main()
