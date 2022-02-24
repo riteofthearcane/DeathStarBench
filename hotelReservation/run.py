@@ -5,11 +5,11 @@ import time
 import numpy as np
 import json
 
-NUM_THREADS = str(4)
-NUM_CONNECTIONS = str(20)
+NUM_THREADS = str(30)
+NUM_CONNECTIONS = str(60)
 DURATIONS = str(15)
-REQUESTS_PER_SECOND = 100
-RUNS = 3
+REQUESTS_PER_SECOND = 20
+RUNS = 15
 SLEEP_DURATION = 1
 
 
@@ -69,7 +69,7 @@ def parse_results(output):
     for _ in range(8):
         i += 1
         words = lines[i].split()
-        print("Words: " + words[0])
+        # print("Words: " + words[0])
         latency_map[words[0]] = words[1]
 
     print("Val: " + latency_map["50.000%"])
@@ -82,10 +82,10 @@ def main():
         print(REQUESTS_PER_SECOND)
         res = run_benchmark()
         results[REQUESTS_PER_SECOND] = parse_results(res)
-        time.sleep(SLEEP_DURATION)
-        REQUESTS_PER_SECOND += 1000
+        # time.sleep(SLEEP_DURATION)
+        REQUESTS_PER_SECOND += 20000
     
-    with open("data.json", "w") as f:
+    with open("data1.json", "w") as f:
         json.dump(results, f)
 
 if __name__ == "__main__":

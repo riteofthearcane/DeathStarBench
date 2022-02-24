@@ -134,10 +134,10 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 
 	memc_date_num_map := make(map[string]int)
 
-	if s.i > 100 {
-		log.Printf("CLEARING THE CACHE %d", s.k)
+	if s.i > 100 && false{
+		log.Printf("CLEAR THE CACHE %d", s.k)
 		s.k++
-		s.MemcClient.DeleteAll()
+		//s.MemcClient.DeleteAll()
 	}
 
 	for inDate.Before(outDate) {
@@ -150,7 +150,7 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 		memc_key := hotelId + "_" + inDate.String()[0:10] + "_" + outdate
 		item, err := s.MemcClient.Get(memc_key)
 		if err == nil {
-			log.Printf("Reservation Cache Hit %d", s.i)
+			log.Printf("Reservation Cacher boy Hit %d", s.i)
 			s.i++
 			// memcached hit
 			count, _ = strconv.Atoi(string(item.Value))
@@ -160,7 +160,7 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 		} else if err == memcache.ErrCacheMiss {
 			// memcached miss
 			// fmt.Printf("memcached miss\n")
-			log.Printf("Reservation Cache Miss %d", s.j)
+			log.Printf("Reservation Cacher boy Miss %d", s.j)
 			s.j++
 			reserve := make([]reservation, 0)
 			err := c.Find(&bson.M{"hotelId": hotelId, "inDate": indate, "outDate": outdate}).All(&reserve)
