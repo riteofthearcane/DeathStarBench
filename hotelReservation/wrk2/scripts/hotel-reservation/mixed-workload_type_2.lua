@@ -110,10 +110,10 @@ end
 
 request = function()
   cur_time = math.floor(socket.gettime())
-  local search_ratio      = 0
-  local recommend_ratio   = 0
-  local user_ratio        = 0
-  local reserve_ratio     = 1
+  local search_ratio      = 0 -- 4.86ms
+  local recommend_ratio   = 0 -- 4.07ms
+  local user_ratio        = 0 -- 2.89ms
+  local reserve_ratio     = 1 -- 13.3ms
 
   local coin = math.random()
   if coin < search_ratio then

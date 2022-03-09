@@ -42,6 +42,7 @@ type Server struct {
 	i            int
 	j            int
 	k            int
+	flushed      bool
 }
 
 // Run starts the server
@@ -134,10 +135,11 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 
 	memc_date_num_map := make(map[string]int)
 
-	if s.i > 100 && false{
+	if s.i > 119000 && !s.flushed {
 		log.Printf("CLEAR THE CACHE %d", s.k)
 		s.k++
-		//s.MemcClient.DeleteAll()
+		s.flushed = true
+		s.MemcClient.DeleteAll()
 	}
 
 	for inDate.Before(outDate) {
@@ -150,7 +152,7 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 		memc_key := hotelId + "_" + inDate.String()[0:10] + "_" + outdate
 		item, err := s.MemcClient.Get(memc_key)
 		if err == nil {
-			log.Printf("Reservation Cacher boy Hit %d", s.i)
+			fmt.Printf("Reservation Cacher boy Hit %d\n", s.i)
 			s.i++
 			// memcached hit
 			count, _ = strconv.Atoi(string(item.Value))
@@ -160,7 +162,7 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 		} else if err == memcache.ErrCacheMiss {
 			// memcached miss
 			// fmt.Printf("memcached miss\n")
-			log.Printf("Reservation Cacher boy Miss %d", s.j)
+			fmt.Printf("Reservation Cacher boy Miss %d\n", s.j)
 			s.j++
 			reserve := make([]reservation, 0)
 			err := c.Find(&bson.M{"hotelId": hotelId, "inDate": indate, "outDate": outdate}).All(&reserve)
@@ -187,7 +189,7 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 		if err == nil {
 			// memcached hit
 			hotel_cap, _ = strconv.Atoi(string(item.Value))
-			// fmt.Printf("memcached hit %s = %d\n", memc_cap_key, hotel_cap)
+			fmt.Printf("memcached hit %s = %d\n", memc_cap_key, hotel_cap)
 		} else if err == memcache.ErrCacheMiss {
 			// memcached miss
 			var num number
@@ -198,6 +200,7 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 			hotel_cap = int(num.Number)
 
 			// write to memcache
+			fmt.Print("Set the memcache val\n")
 			s.MemcClient.Set(&memcache.Item{Key: memc_cap_key, Value: []byte(strconv.Itoa(hotel_cap))})
 		} else {
 			fmt.Printf("Memmcached error = %s\n", err)
@@ -209,9 +212,9 @@ func (s *Server) MakeReservation(ctx context.Context, req *pb.Request) (*pb.Resu
 		}
 		indate = outdate
 	}
-
 	// only update reservation number cache after check succeeds
 	for key, val := range memc_date_num_map {
+		fmt.Printf("Updating the actual cache\n")
 		s.MemcClient.Set(&memcache.Item{Key: key, Value: []byte(strconv.Itoa(val))})
 	}
 

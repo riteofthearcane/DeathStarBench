@@ -2,15 +2,15 @@ import subprocess
 import os
 import random
 import time
+from urllib import request
 import numpy as np
 import json
 import matplotlib.pyplot as plt
 
-NUM_THREADS = str(30)
-NUM_CONNECTIONS = str(60)
-DURATIONS = str(15)
-RUNS = 10
-SLEEP_DURATION = 1
+NUM_THREADS = str(5)
+NUM_CONNECTIONS = str(100)
+DURATIONS = str(30)
+SLEEP_DURATION = 2
 
 
 def gen_rand():
@@ -107,14 +107,12 @@ def make_chart(data):
 def main():
     results = {}
     for requests_per_second in range(1000, 10000, 1000):
+        print(requests_per_second)
         res = run_benchmark(0, 0, 0, 1, NUM_THREADS, NUM_CONNECTIONS, DURATIONS, requests_per_second)
         median_str = parse_results(res)["50.000%"]
         median = parse_time(median_str)
         results[requests_per_second] = median
         time.sleep(SLEEP_DURATION)
-
-    with open("data1.json", "w") as f:
-        json.dump(results, f)
 
     make_chart(results)
 
