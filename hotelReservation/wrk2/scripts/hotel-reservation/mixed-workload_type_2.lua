@@ -1,4 +1,5 @@
 require "socket"
+require "os"
 math.randomseed(socket.gettime()*1000)
 math.random(); math.random(); math.random()
 
@@ -109,10 +110,10 @@ end
 
 request = function()
   cur_time = math.floor(socket.gettime())
-  local search_ratio      = 0.6
-  local recommend_ratio   = 0.39
-  local user_ratio        = 0.005
-  local reserve_ratio     = 0.005
+  local search_ratio      = tonumber(os.getenv("SEARCH_RATIO"))
+  local recommend_ratio   = tonumber(os.getenv("RECOMMEND_RATIO"))
+  local user_ratio        = tonumber(os.getenv("USER_RATIO"))
+  local reserve_ratio     = tonumber(os.getenv("RESERVE_RATIO"))
 
   local coin = math.random()
   if coin < search_ratio then
