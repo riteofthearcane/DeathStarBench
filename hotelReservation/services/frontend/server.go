@@ -177,16 +177,20 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	// fmt.Printf("starts searchHandler querying downstream\n")
 
 	// search for best hotels
-	searchResp, err := s.searchClient.Nearby(ctx, &search.NearbyRequest{
-		Lat:     lat,
-		Lon:     lon,
-		InDate:  inDate,
-		OutDate: outDate,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	for {
+		searchResp, err := s.searchClient.Nearby(ctx, &search.NearbyRequest{
+			Lat:     lat,
+			Lon:     lon,
+			InDate:  inDate,
+			OutDate: outDate,
+		})
+		if err == nil {
+			break
+			// http.Error(w, err.Error(), http.StatusInternalServerError)
+			// return
+		}
 	}
+
 
 	// fmt.Printf("searchHandler gets searchResp\n")
 	// for _, hid := range searchResp.HotelIds {
@@ -199,31 +203,46 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 		locale = "en"
 	}
 
-	reservationResp, err := s.reservationClient.CheckAvailability(ctx, &reservation.Request{
-		CustomerName: "",
-		HotelId:      searchResp.HotelIds,
-		InDate:       inDate,
-		OutDate:      outDate,
-		RoomNumber:   1,
-	})
-	if err != nil {
-		fmt.Println("searchHandler CheckAvailability failed")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	for {
+		reservationResp, err := s.reservationClient.CheckAvailability(ctx, &reservation.Request{
+			CustomerName: "",
+			HotelId:      searchResp.HotelIds,
+			InDate:       inDate,
+			OutDate:      outDate,
+			RoomNumber:   1,
+		})
+
+		if err == nil {
+			break
+		}
+
+		// if err != nil {
+		// 	fmt.Println("searchHandler CheckAvailability failed")
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
 	}
 
 	// fmt.Printf("searchHandler gets reserveResp\n")
 	// fmt.Printf("searchHandler gets reserveResp.HotelId = %s\n", reservationResp.HotelId)
 
 	// hotel profiles
-	profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
-		HotelIds: reservationResp.HotelId,
-		Locale:   locale,
-	})
-	if err != nil {
-		fmt.Println("searchHandler GetProfiles failed")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
+			HotelIds: reservationResp.HotelId,
+			Locale:   locale,
+		})
+
+		// if err != nil {
+		// 	fmt.Println("searchHandler GetProfiles failed")
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		if err == nil {
+			break
+		}
 	}
 
 	// fmt.Printf("searchHandler gets profileResp\n")
@@ -252,14 +271,22 @@ func (s *Server) recommendHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// recommend hotels
-	recResp, err := s.recommendationClient.GetRecommendations(ctx, &recommendation.Request{
-		Require: require,
-		Lat:     float64(lat),
-		Lon:     float64(lon),
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		recResp, err := s.recommendationClient.GetRecommendations(ctx, &recommendation.Request{
+			Require: require,
+			Lat:     float64(lat),
+			Lon:     float64(lon),
+		})
+
+		if err == nil {
+			break
+		}
+
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
 	}
 
 	// grab locale from query params or default to en
@@ -269,13 +296,21 @@ func (s *Server) recommendHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// hotel profiles
-	profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
-		HotelIds: recResp.HotelIds,
-		Locale:   locale,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
+			HotelIds: recResp.HotelIds,
+			Locale:   locale,
+		})
+
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
+
+		if err == nil {
+			break
+		}
 	}
 
 	json.NewEncoder(w).Encode(geoJSONResponse(profileResp.Hotels))
@@ -353,13 +388,20 @@ func (s *Server) reservationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check username and password
-	recResp, err := s.userClient.CheckUser(ctx, &user.Request{
-		Username: username,
-		Password: password,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		recResp, err := s.userClient.CheckUser(ctx, &user.Request{
+			Username: username,
+			Password: password,
+		})
+
+		if err == nil {
+			break
+		}
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
 	}
 
 	str := "Reserve successfully!"
@@ -368,16 +410,23 @@ func (s *Server) reservationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make reservation
-	resResp, err := s.reservationClient.MakeReservation(ctx, &reservation.Request{
-		CustomerName: customerName,
-		HotelId:      []string{hotelId},
-		InDate:       inDate,
-		OutDate:      outDate,
-		RoomNumber:   int32(numberOfRoom),
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	for {
+		resResp, err := s.reservationClient.MakeReservation(ctx, &reservation.Request{
+			CustomerName: customerName,
+			HotelId:      []string{hotelId},
+			InDate:       inDate,
+			OutDate:      outDate,
+			RoomNumber:   int32(numberOfRoom),
+		})
+
+		if err == nil {
+			break
+		}
+
+		// if err != nil {
+		// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+		// 	return
+		// }
 	}
 	if len(resResp.HotelId) == 0 {
 		str = "Failed. Already reserved. "
