@@ -6,10 +6,10 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 
-NUM_THREADS = str(30)
-NUM_CONNECTIONS = str(60)
-DURATIONS = str(15)
-RUNS = 10
+NUM_THREADS = str(2) # set these equal to max number of threads on the server
+NUM_CONNECTIONS = str(100)
+DURATIONS = str(30)
+MAX_THROUGHPUT = str(50000) # Gigantic number that we know we won't surpass
 SLEEP_DURATION = 1
 
 
@@ -37,17 +37,7 @@ def parse_time(time_str):
         raise ValueError("Unknown unit in: " + time_str)
     return num_val * mult
 
-def run_benchmark(search_ratio, recommend_ratio, user_ratio, reserve_ratio, num_threads, num_connections, duration, requests_per_second):
-    
-    # Normalize Values
-    # normalized_arr = np.random.rand(4,1)
-    # normalized_arr = normalized_arr/normalized_arr.sum(axis=0,keepdims=1)
-
-
-    # os.environ["SEARCH_RATIO"] = str(round(normalized_arr[0][0], 3))
-    # os.environ["RECOMMEND_RATIO"] = str(round(normalized_arr[1][0], 3))
-    # os.environ["USER_RATIO"] = str(round(normalized_arr[2][0], 3))
-    # os.environ["RESERVE_RATIO"] = str(round(normalized_arr[3][0], 3))
+def run_benchmark(search_ratio, recommend_ratio, user_ratio, reserve_ratio, num_threads, num_connections, duration, max_throughput):
 
     os.environ["SEARCH_RATIO"] = str(search_ratio)
     os.environ["RECOMMEND_RATIO"] = str(recommend_ratio)
@@ -68,7 +58,7 @@ def run_benchmark(search_ratio, recommend_ratio, user_ratio, reserve_ratio, num_
                     "./wrk2/scripts/hotel-reservation/mixed-workload_type_1.lua",
                     "http://0.0.0.0:5000", 
                     "-R", 
-                    str(requests_per_second)]
+                    max_throughput]
     res = subprocess.check_output(cmd).decode("utf-8")
 
     # Delete Env when finished
@@ -92,33 +82,46 @@ def parse_results(output):
         words = lines[i].split()
         # print("Words: " + words[0])
         latency_map[words[0]] = words[1]
+    
+    # skip to requests/sec
+    while 'Requests/sec:' not in lines[i].strip() :
+        i += 1
+    words = lines[i].split()
+    req_sec = words[1]
 
-    return latency_map
+    return latency_map, req_sec 
 
-def make_chart(data):
+def make_chart(data, x_label, y_label, out, fig):
+    plt.figure(fig)
     x = list(data.keys())
     y = list(data.values())
     
     plt.plot(x, y)
-    plt.xlabel("Requests per second")
-    plt.ylabel("Latency (s)")
-    plt.savefig('chart.png')
+    plt.title("100 Connections")
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.savefig(out)
 
 def main():
-    results = {}
-    for requests_per_second in range(1000, 10000, 1000):
-        res = run_benchmark(0, 0, 0, 1, NUM_THREADS, NUM_CONNECTIONS, DURATIONS, requests_per_second)
-        median_str = parse_results(res)["50.000%"]
-        median = parse_time(median_str)
-        results[requests_per_second] = median
+    lat_results = {}
+    req_results = {}
+    for num_reqs in range(2000, 3700, 100): # i in range(0,RUNS,1): # 
+        res = run_benchmark(0, 0, 0, 1, NUM_THREADS, NUM_CONNECTIONS, DURATIONS, str(num_reqs))
+        print(res)
+        print("\n\n\n")
+        lat_map, real_num_reqs = parse_results(res)
+        median_str = lat_map["50.000%"]
+        median_lat = parse_time(median_str)
+        lat_results[num_reqs] = median_lat
+        req_results[num_reqs] = float(real_num_reqs)
         time.sleep(SLEEP_DURATION)
 
-    with open("data1.json", "w") as f:
-        json.dump(results, f)
+    make_chart(lat_results, "Specified Requests/Sec", "Latency(s)", "lat_chart.png", 0)
+    make_chart(req_results, "Specified Requests/Sec", "Actual Requests/Sec", "req_chart.png", 1)
+# with this configuration seem to be hitting max r/s at 2800!!
+# max config seems to be 100 connections w 2 threads at throughput of 2900 r/s
 
-    make_chart(results)
-
+# these statistics will be different on the server side
+# Need to see if 
 if __name__ == "__main__":
     main()
-
-
