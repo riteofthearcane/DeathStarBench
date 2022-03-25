@@ -9,9 +9,7 @@ import matplotlib.pyplot as plt
 NUM_THREADS = str(2) # set these equal to max number of threads on the server
 NUM_CONNECTIONS = str(100)
 DURATIONS = str(30)
-MAX_THROUGHPUT = str(50000) # Gigantic number that we know we won't surpass
 SLEEP_DURATION = 1
-
 
 def gen_rand():
     return round(random.uniform(0, 1), 3)
@@ -105,7 +103,7 @@ def make_chart(data, x_label, y_label, out, fig):
 def main():
     lat_results = {}
     req_results = {}
-    for num_reqs in range(2000, 3700, 100): # i in range(0,RUNS,1): # 
+    for num_reqs in range(16000, 26000, 250):
         res = run_benchmark(0, 0, 0, 1, NUM_THREADS, NUM_CONNECTIONS, DURATIONS, str(num_reqs))
         print(res)
         print("\n\n\n")
@@ -118,10 +116,6 @@ def main():
 
     make_chart(lat_results, "Specified Requests/Sec", "Latency(s)", "lat_chart.png", 0)
     make_chart(req_results, "Specified Requests/Sec", "Actual Requests/Sec", "req_chart.png", 1)
-# with this configuration seem to be hitting max r/s at 2800!!
-# max config seems to be 100 connections w 2 threads at throughput of 2900 r/s
 
-# these statistics will be different on the server side
-# Need to see if 
 if __name__ == "__main__":
     main()

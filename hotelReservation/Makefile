@@ -11,6 +11,10 @@ proto:
 data:
 	go-bindata -o data/bindata.go -pkg data data/*.json
 
+setup:
+	docker kill $(docker container ps -a -q)
+	eval $(luarocks path --bin)
+	
 run:
 	docker-compose build
 	docker-compose up --remove-orphans -d
