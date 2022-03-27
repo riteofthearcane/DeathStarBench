@@ -70,16 +70,16 @@ local function reserve()
 
   local in_date_str = tostring(in_date)
   if in_date <= 9 then
-    in_date_str = "2015-04-0" .. in_date_str 
+    in_date_str = "2024-04-0" .. in_date_str 
   else
-    in_date_str = "2015-04-" .. in_date_str
+    in_date_str = "2024-04-" .. in_date_str
   end
 
   local out_date_str = tostring(out_date)
   if out_date <= 9 then
-    out_date_str = "2015-04-0" .. out_date_str 
+    out_date_str = "2024-04-0" .. out_date_str 
   else
-    out_date_str = "2015-04-" .. out_date_str
+    out_date_str = "2024-04-" .. out_date_str
   end
 
   local hotel_id = tostring(math.random(1, 80))
@@ -109,10 +109,10 @@ end
 
 request = function()
   cur_time = math.floor(socket.gettime())
-  local search_ratio      = 0.6
-  local recommend_ratio   = 0.39
-  local user_ratio        = 0.005
-  local reserve_ratio     = 0.005
+  local search_ratio      = 0
+  local recommend_ratio   = 0
+  local user_ratio        = 0
+  local reserve_ratio     = 1
 
   local coin = math.random()
   if coin < search_ratio then
