@@ -189,7 +189,7 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil && RETRY {
+		if err != nil && !RETRY {
 			fmt.Println("searchHandler CheckAvailability failed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -222,7 +222,7 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil && RETRY {
+		if err != nil && !RETRY {
 			fmt.Println("searchHandler CheckAvailability failed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -244,7 +244,7 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil && RETRY {
+		if err != nil && !RETRY {
 			fmt.Println("searchHandler CheckAvailability failed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -290,7 +290,7 @@ func (s *Server) recommendHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil && RETRY {
+		if err != nil && !RETRY {
 			fmt.Println("searchHandler CheckAvailability failed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -315,7 +315,7 @@ func (s *Server) recommendHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil && RETRY {
+		if err != nil && !RETRY {
 			fmt.Println("searchHandler CheckAvailability failed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -409,7 +409,7 @@ func (s *Server) reservationHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil && RETRY {
+		if err != nil && !RETRY {
 			fmt.Println("searchHandler CheckAvailability failed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -435,7 +435,7 @@ func (s *Server) reservationHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		if err != nil && RETRY {
+		if err != nil && !RETRY {
 			fmt.Println("searchHandler CheckAvailability failed")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
