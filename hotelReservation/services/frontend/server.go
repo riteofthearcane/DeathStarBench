@@ -1,20 +1,20 @@
 package frontend
 
+RETRY := true
+
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/harlow/go-micro-services/services/recommendation/proto"
+	"github.com/harlow/go-micro-services/services/reservation/proto"
+	"github.com/harlow/go-micro-services/services/user/proto"
+        "log"
 	"net/http"
 	"strconv"
-
-	recommendation "github.com/harlow/go-micro-services/services/recommendation/proto"
-	reservation "github.com/harlow/go-micro-services/services/reservation/proto"
-	user "github.com/harlow/go-micro-services/services/user/proto"
-	"github.com/rs/zerolog/log"
-
 	"github.com/harlow/go-micro-services/dialer"
 	"github.com/harlow/go-micro-services/registry"
-	profile "github.com/harlow/go-micro-services/services/profile/proto"
-	search "github.com/harlow/go-micro-services/services/search/proto"
+	"github.com/harlow/go-micro-services/services/profile/proto"
+	"github.com/harlow/go-micro-services/services/search/proto"
 	"github.com/harlow/go-micro-services/tls"
 	"github.com/harlow/go-micro-services/tracing"
 	"github.com/opentracing/opentracing-go"
@@ -27,19 +27,18 @@ type Server struct {
 	recommendationClient recommendation.RecommendationClient
 	userClient           user.UserClient
 	reservationClient    reservation.ReservationClient
-	IpAddr               string
-	Port                 int
-	Tracer               opentracing.Tracer
-	Registry             *registry.Client
+	IpAddr	 string
+	Port     int
+	Tracer   opentracing.Tracer
+	Registry *registry.Client
 }
 
 // Run the server
 func (s *Server) Run() error {
 	if s.Port == 0 {
-		return fmt.Errorf("Server port must be set")
+		return fmt.Errorf("server port must be set")
 	}
 
-	log.Info().Msg("Initializing gRPC clients...")
 	if err := s.initSearchClient("srv-search"); err != nil {
 		return err
 	}
@@ -59,9 +58,9 @@ func (s *Server) Run() error {
 	if err := s.initReservation("srv-reservation"); err != nil {
 		return err
 	}
-	log.Info().Msg("Successfull")
 
-	log.Trace().Msg("frontend before mux")
+	// fmt.Printf("frontend before mux\n")
+
 	mux := tracing.NewServeMux(s.Tracer)
 	mux.Handle("/", http.FileServer(http.Dir("services/frontend/static")))
 	mux.Handle("/hotels", http.HandlerFunc(s.searchHandler))
@@ -69,21 +68,21 @@ func (s *Server) Run() error {
 	mux.Handle("/user", http.HandlerFunc(s.userHandler))
 	mux.Handle("/reservation", http.HandlerFunc(s.reservationHandler))
 
-	log.Trace().Msg("frontend starts serving")
+	// fmt.Printf("frontend starts serving\n")
 
-	tlsconfig := tls.GetHttpsOpt()
-	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.Port),
-		Handler: mux,
-	}
-	if tlsconfig != nil {
-		log.Info().Msg("Serving https")
-		srv.TLSConfig = tlsconfig
-		return srv.ListenAndServeTLS("x509/server_cert.pem", "x509/server_key.pem")
-	} else {
-		log.Info().Msg("Serving https")
-		return srv.ListenAndServe()
-	}
+        tlsconfig := tls.GetHttpsOpt()
+        srv := &http.Server{
+            Addr: fmt.Sprintf(":%d", s.Port),
+            Handler: mux,
+        }
+        if tlsconfig != nil {
+            log.Printf("Serving https")
+            srv.TLSConfig = tlsconfig
+            return srv.ListenAndServeTLS("x509/server_cert.pem", "x509/server_key.pem")
+        } else {
+            log.Printf("Serving http")
+	    return srv.ListenAndServe()
+        }
 }
 
 func (s *Server) initSearchClient(name string) error {
@@ -155,7 +154,7 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	ctx := r.Context()
 
-	log.Trace().Msg("starts searchHandler")
+	// fmt.Printf("starts searchHandler\n")
 
 	// in/out dates from query params
 	inDate, outDate := r.URL.Query().Get("inDate"), r.URL.Query().Get("outDate")
@@ -176,25 +175,33 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 	Lon, _ := strconv.ParseFloat(sLon, 32)
 	lon := float32(Lon)
 
-	log.Trace().Msg("starts searchHandler querying downstream")
+	// fmt.Printf("starts searchHandler querying downstream\n")
 
-	log.Info().Msgf(" SEARCH [lat: %v, lon: %v, inDate: %v, outDate: %v", lat, lon, inDate, outDate)
 	// search for best hotels
-	searchResp, err := s.searchClient.Nearby(ctx, &search.NearbyRequest{
-		Lat:     lat,
-		Lon:     lon,
-		InDate:  inDate,
-		OutDate: outDate,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	for {
+		searchResp, err := s.searchClient.Nearby(ctx, &search.NearbyRequest{
+			Lat:     lat,
+			Lon:     lon,
+			InDate:  inDate,
+			OutDate: outDate,
+		})
+		if err == nil {
+			break
+		}
+
+		if err != nil && RETRY {
+			fmt.Println("searchHandler CheckAvailability failed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
 
-	log.Info().Msg("SearchHandler gets searchResp")
-	for _, hid := range searchResp.HotelIds {
-		log.Info().Msgf("Search Handler hotelId = %s", hid)
-	}
+
+	// fmt.Printf("searchHandler gets searchResp\n")
+	// for _, hid := range searchResp.HotelIds {
+	// 	fmt.Printf("search Handler hotelId = %s\n", hid)
+	// }
 
 	// grab locale from query params or default to en
 	locale := r.URL.Query().Get("locale")
@@ -202,34 +209,50 @@ func (s *Server) searchHandler(w http.ResponseWriter, r *http.Request) {
 		locale = "en"
 	}
 
-	reservationResp, err := s.reservationClient.CheckAvailability(ctx, &reservation.Request{
-		CustomerName: "",
-		HotelId:      searchResp.HotelIds,
-		InDate:       inDate,
-		OutDate:      outDate,
-		RoomNumber:   1,
-	})
-	if err != nil {
-		log.Error().Msg("SearchHandler CheckAvailability failed")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	for {
+		reservationResp, err := s.reservationClient.CheckAvailability(ctx, &reservation.Request{
+			CustomerName: "",
+			HotelId:      searchResp.HotelIds,
+			InDate:       inDate,
+			OutDate:      outDate,
+			RoomNumber:   1,
+		})
+
+		if err == nil {
+			break
+		}
+
+		if err != nil && RETRY {
+			fmt.Println("searchHandler CheckAvailability failed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
-	log.Info().Msgf("searchHandler gets reserveResp")
-	log.Info().Msgf("searchHandler gets reserveResp.HotelId = %s", reservationResp.HotelId)
+	// fmt.Printf("searchHandler gets reserveResp\n")
+	// fmt.Printf("searchHandler gets reserveResp.HotelId = %s\n", reservationResp.HotelId)
 
 	// hotel profiles
-	profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
-		HotelIds: reservationResp.HotelId,
-		Locale:   locale,
-	})
-	if err != nil {
-		log.Error().Msg("SearchHandler GetProfiles failed")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
+			HotelIds: reservationResp.HotelId,
+			Locale:   locale,
+		})
+
+		if err == nil {
+			break
+		}
+
+		if err != nil && RETRY {
+			fmt.Println("searchHandler CheckAvailability failed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
 
-	log.Info().Msg("searchHandler gets profileResp")
+	// fmt.Printf("searchHandler gets profileResp\n")
 
 	json.NewEncoder(w).Encode(geoJSONResponse(profileResp.Hotels))
 }
@@ -255,14 +278,23 @@ func (s *Server) recommendHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// recommend hotels
-	recResp, err := s.recommendationClient.GetRecommendations(ctx, &recommendation.Request{
-		Require: require,
-		Lat:     float64(lat),
-		Lon:     float64(lon),
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		recResp, err := s.recommendationClient.GetRecommendations(ctx, &recommendation.Request{
+			Require: require,
+			Lat:     float64(lat),
+			Lon:     float64(lon),
+		})
+
+		if err == nil {
+			break
+		}
+
+		if err != nil && RETRY {
+			fmt.Println("searchHandler CheckAvailability failed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// grab locale from query params or default to en
@@ -272,13 +304,23 @@ func (s *Server) recommendHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// hotel profiles
-	profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
-		HotelIds: recResp.HotelIds,
-		Locale:   locale,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		profileResp, err := s.profileClient.GetProfiles(ctx, &profile.Request{
+			HotelIds: recResp.HotelIds,
+			Locale:   locale,
+		})
+
+		if err == nil {
+			break
+		}
+
+		if err != nil && RETRY {
+			fmt.Println("searchHandler CheckAvailability failed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 	}
 
 	json.NewEncoder(w).Encode(geoJSONResponse(profileResp.Hotels))
@@ -356,13 +398,22 @@ func (s *Server) reservationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check username and password
-	recResp, err := s.userClient.CheckUser(ctx, &user.Request{
-		Username: username,
-		Password: password,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+
+	for {
+		recResp, err := s.userClient.CheckUser(ctx, &user.Request{
+			Username: username,
+			Password: password,
+		})
+
+		if err == nil {
+			break
+		}
+
+		if err != nil && RETRY {
+			fmt.Println("searchHandler CheckAvailability failed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	str := "Reserve successfully!"
@@ -371,16 +422,24 @@ func (s *Server) reservationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make reservation
-	resResp, err := s.reservationClient.MakeReservation(ctx, &reservation.Request{
-		CustomerName: customerName,
-		HotelId:      []string{hotelId},
-		InDate:       inDate,
-		OutDate:      outDate,
-		RoomNumber:   int32(numberOfRoom),
-	})
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	for {
+		resResp, err := s.reservationClient.MakeReservation(ctx, &reservation.Request{
+			CustomerName: customerName,
+			HotelId:      []string{hotelId},
+			InDate:       inDate,
+			OutDate:      outDate,
+			RoomNumber:   int32(numberOfRoom),
+		})
+
+		if err == nil {
+			break
+		}
+
+		if err != nil && RETRY {
+			fmt.Println("searchHandler CheckAvailability failed")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	if len(resResp.HotelId) == 0 {
 		str = "Failed. Already reserved. "
